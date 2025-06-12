@@ -3,7 +3,7 @@ import './style.css'
 import App from './App.vue'
 
 // 라우터 등록
-import router from './router' 
+import router from './router/router' 
 
 // 부트스트랩 등록
 import 'bootstrap/dist/css/bootstrap.min.css';
