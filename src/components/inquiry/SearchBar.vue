@@ -12,7 +12,7 @@
         <option value="unanswered">미답변순</option>
       </select>
       <button type="submit">🔍 검색</button>
-      <button type="button" @click="handleReset">🔄 초기화</button>
+      <button type="button" @click="resetSearch">초기화</button>
     </form>
   </div>
 </template>
@@ -30,12 +30,12 @@ function handleSearch() {
   store.searchInquiries()
 }
 
-// 검색 초기화
-function handleReset() {
-  keyword.value = ''
-  sortOrder.value = 'latest'
-  store.fetchAllInquiries()
+// 초기화
+const resetSearch = () => {
+  store.resetFilters()
 }
+
+
 </script>
 
 <style scoped lang="scss">

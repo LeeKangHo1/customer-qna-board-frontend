@@ -14,7 +14,9 @@ import { useInquiryStore } from '../stores/inquiry'
 const store = useInquiryStore()
 
 onMounted(() => {
-  store.fetchAllInquiries()
+    if (store.filteredInquiries.length === 0) {
+    store.fetchAllInquiries() // 검색/정렬 상태 유지하며 초기화는 안 함
+  }
 })
 </script>
 

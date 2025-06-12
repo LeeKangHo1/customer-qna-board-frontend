@@ -13,7 +13,9 @@
             </thead>
             <tbody>
                 <tr v-for="inquiry in pagedInquiries" :key="inquiry.id">
-                    <td>{{ inquiry.title }}</td>
+                    <td>
+                        <RouterLink :to="`/inquiries/${inquiry.id}`">{{ inquiry.title }}</RouterLink>
+                    </td>
                     <td>{{ inquiry.answered ? '✅ 완료' : '⏳ 대기 중' }}</td>
                     <td>{{ formatDate(inquiry.createdAt) }}</td>
                 </tr>
@@ -22,31 +24,25 @@
 
         <!-- 페이징 컴포넌트 추가 -->
         <Pagination 
-            :total-items="filteredInquiries.length" 
-            :items-per-page="perPage" 
-            :current-page="currentPage"
-            @update:currentPage="currentPage = $event" />
+        :total-items="filteredInquiries.length" 
+        :items-per-page="perPage" 
+        :current-page="currentPage"
+        @update:currentPage="store.currentPage = $event" />
     </div>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue'
+import { computed, watch } from 'vue'
 import { useInquiryStore } from '../../stores/inquiry'
 import { storeToRefs } from 'pinia'
 import Pagination from '../common/Pagination.vue'
+import { RouterLink } from 'vue-router'
 
 const store = useInquiryStore()
-const { filteredInquiries } = storeToRefs(store)
+const { filteredInquiries, currentPage } = storeToRefs(store)
 
-const currentPage = ref(1)
 const perPage = 5
 
-// ✅ 정렬/검색 결과 바뀔 때 페이지 리셋
-watch(filteredInquiries, () => {
-  currentPage.value = 1
-})
-
-// ✅ 페이징된 항목 계산
 const pagedInquiries = computed(() => {
   const start = (currentPage.value - 1) * perPage
   const end = start + perPage
@@ -61,8 +57,8 @@ const formatDate = (dateStr) => {
     day: '2-digit',
   })
 }
-
 </script>
+
 
 <style scoped lang="scss">
 .inquiry-list {
