@@ -31,6 +31,7 @@ const router = useRouter()
 
 const handleLogout = () => {
   userStore.logout()
+  alert('로그아웃되었습니다.') // ✅ 알림 추가
   router.push('/')
 }
 </script>

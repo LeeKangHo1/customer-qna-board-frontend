@@ -8,6 +8,7 @@ import MyPage from '../pages/MyPage.vue'
 import InquiryDetailPage from '../pages/InquiryDetailPage.vue'
 import InquiryWritePage from '../pages/InquiryWritePage.vue'
 import EditProfilePage from '../pages/EditProfilePage.vue'
+import InquiryEditPage from '../pages/InquiryEditPage.vue'
 
 const routes = [
   { path: '/', component: HomePage }, // QnA 목록
@@ -17,6 +18,7 @@ const routes = [
   { path: '/inquiries/write', component: InquiryWritePage },
   { path: '/inquiries/:id', component: InquiryDetailPage, props: true },
   { path: '/edit-profile', component: EditProfilePage },
+  { path: '/inquiries/:id/edit', component: InquiryEditPage },
 ]
 
 const router = createRouter({

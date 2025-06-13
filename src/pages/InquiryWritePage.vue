@@ -6,10 +6,20 @@
         <label for="title">제목</label>
         <input id="title" v-model="title" type="text" required />
       </div>
+
       <div class="form-group">
         <label for="content">내용</label>
         <textarea id="content" v-model="content" rows="8" required></textarea>
       </div>
+
+      <!-- ✅ 비밀글 체크박스 -->
+      <div class="form-group checkbox">
+        <label>
+          <input type="checkbox" v-model="isSecret" />
+          비밀글로 설정
+        </label>
+      </div>
+
       <button type="submit">등록</button>
       <p v-if="message" class="message">{{ message }}</p>
     </form>
@@ -21,6 +31,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { useInquiryStore } from '../stores/inquiry'
+import axios from '../api/axios'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -28,6 +39,7 @@ const inquiryStore = useInquiryStore()
 
 const title = ref('')
 const content = ref('')
+const isSecret = ref(false) // ✅ 비밀글 상태
 const message = ref('')
 
 onMounted(() => {
@@ -36,28 +48,31 @@ onMounted(() => {
   }
 })
 
-const handleSubmit = () => {
+const handleSubmit = async () => {
   if (!title.value || !content.value) {
     message.value = '❌ 제목과 내용을 모두 입력해주세요.'
     return
   }
 
-  // 로컬 상태에 임시 추가 (백엔드 연동 전용)
-  const newInquiry = {
-    id: Date.now(), // 임시 ID
-    userId: userStore.userInfo.id,
-    title: title.value,
-    content: content.value,
-    answered: 0,
-    createdAt: new Date().toISOString(),
-  }
+  try {
+    const payload = {
+      user_id: userStore.userInfo.id,
+      title: title.value,
+      content: content.value,
+      is_secret: isSecret.value ? 1 : 0 // ✅ 1: 비밀글, 0: 공개글
+    }
 
-  inquiryStore.originalInquiries.unshift(newInquiry)
-  inquiryStore.searchInquiries() // 검색 조건 초기화
-  message.value = '✅ 문의가 등록되었습니다!'
-  setTimeout(() => {
-    router.push('/')
-  }, 1000)
+    const res = await axios.post('/inquiries', payload)
+
+    message.value = '✅ 문의가 등록되었습니다!'
+    await inquiryStore.fetchAllInquiries()
+    setTimeout(() => {
+      router.push('/')
+    }, 1000)
+  } catch (err) {
+    console.error('❌ 문의 등록 실패:', err)
+    message.value = '❌ 문의 등록에 실패했습니다.'
+  }
 }
 </script>
 
@@ -90,6 +105,20 @@ const handleSubmit = () => {
       padding: 10px;
       border: 1px solid #ccc;
       border-radius: 6px;
+    }
+
+    &.checkbox {
+      display: flex;
+      align-items: center;
+
+      label {
+        font-weight: normal;
+      }
+
+      input {
+        width: auto;
+        margin-right: 8px;
+      }
     }
   }
 

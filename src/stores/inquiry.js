@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import axios from '../api/axios'
 
 export const useInquiryStore = defineStore('inquiry', {
   state: () => ({
@@ -7,36 +8,34 @@ export const useInquiryStore = defineStore('inquiry', {
     sortOrder: 'latest',
     currentPage: 1,
 
-    // 원본 데이터 - 더미미
-    originalInquiries: [
-      { id: 1, title: '첫 번째 질문', answered: true, createdAt: '2024-06-01' },
-      { id: 2, title: '두 번째 질문', answered: false, createdAt: '2024-06-02' },
-      { id: 3, title: '세 번째 질문', answered: true, createdAt: '2024-06-03' },
-      { id: 4, title: '네 번째 질문', answered: false, createdAt: '2024-06-04' },
-      { id: 5, title: '다섯 번째 질문', answered: true, createdAt: '2024-06-05' },
-      { id: 6, title: '여섯 번째 질문', answered: false, createdAt: '2024-06-06' },
-      { id: 7, title: '일곱 번째 질문', answered: true, createdAt: '2024-06-07' },
-      { id: 8, title: '여덟 번째 질문', answered: true, createdAt: '2024-06-08' },
-      { id: 9, title: '아홉 번째 질문', answered: false, createdAt: '2024-06-09' },
-      { id: 10, title: '열 번째 질문', answered: true, createdAt: '2024-06-10' },
-      { id: 11, title: '열한 번째 질문', answered: false, createdAt: '2024-06-11' },
-      { id: 12, title: '열두 번째 질문', answered: true, createdAt: '2024-06-12' },
-      { id: 13, title: '열세 번째 질문', answered: false, createdAt: '2024-06-13' },
-      { id: 14, title: '열네 번째 질문', answered: true, createdAt: '2024-06-14' },
-      { id: 15, title: '열다섯 번째 질문', answered: false, createdAt: '2024-06-15' },
-    ],
-
-
     // 화면에 보여줄 필터링된 데이터
     filteredInquiries: [],
+    originalInquiries: [],
   }),
 
   actions: {
-    fetchAllInquiries() {
-      // originalInquiries에서 복사
-      this.filteredInquiries = [...this.originalInquiries]
-      console.log('✅ 전체 질문 불러옴')
+    async fetchAllInquiries() {
+      try {
+        const res = await axios.get('/inquiries')
+        this.originalInquiries = res.data.response || []
+        this.filteredInquiries = [...this.originalInquiries]
+        console.log('✅ 문의글 불러오기 성공:', this.originalInquiries.length)
+      } catch (err) {
+        console.error('❌ 문의글 불러오기 실패:', err)
+      }
     },
+    // 상세 조회 메서드
+    async fetchInquiryById(id) {
+      try {
+        const res = await axios.get(`/inquiries/${id}`)
+        return res.data.response // 단일 문의글 반환
+      } catch (err) {
+        console.error('❌ 문의글 상세 조회 실패:', err)
+        return null
+      }
+    },
+
+
 
     searchInquiries() {
       console.log('🔍 검색 실행:', this.keyword, this.sortOrder)

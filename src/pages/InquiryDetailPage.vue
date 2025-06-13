@@ -1,16 +1,46 @@
 <template>
-  <div class="inquiry-detail-page" v-if="inquiry">
-    <button class="back-btn" @click="goBack">← 목록으로</button>
+  <div v-if="isLoading" class="loading">
+    🔄 문의글을 불러오는 중입니다...
+  </div>
+
+  <div v-else-if="inquiry" class="inquiry-detail-page">
+    <button class="back-btn" @click="goHome">← 목록으로</button>
 
     <h2>문의 상세 보기</h2>
     <div class="inquiry-box">
       <p><strong>제목:</strong> {{ inquiry.title }}</p>
-      <p><strong>작성일:</strong> {{ formatDate(inquiry.createdAt) }}</p>
-      <p><strong>작성자 ID:</strong> {{ inquiry.userId }}</p>
+      <p><strong>작성일:</strong> {{ formatDate(inquiry.created_at) }}</p>
+      <p><strong>작성자 이름:</strong> {{ inquiry.name }}</p>
       <p><strong>답변 상태:</strong> {{ inquiry.answered ? '답변 완료' : '미답변' }}</p>
+
       <div class="content">
         <strong>내용:</strong>
         <p>{{ inquiry.content }}</p>
+      </div>
+
+      <!-- 버튼 영역 -->
+      <div class="actions" v-if="userStore.userInfo">
+        <button
+          v-if="userStore.userInfo.id === inquiry.user_id"
+          class="edit-btn"
+          @click="goEdit"
+        >
+          ✏️ 수정
+        </button>
+        <button
+          v-if="userStore.userInfo.id === inquiry.user_id"
+          class="delete-btn"
+          @click="deleteInquiry"
+        >
+          🗑️ 삭제
+        </button>
+        <button
+          v-if="userStore.userInfo.is_admin"
+          class="reply-btn"
+          @click="toggleReplyForm"
+        >
+          💬 답글달기
+        </button>
       </div>
     </div>
   </div>
@@ -18,13 +48,34 @@
   <div v-else class="not-found">
     <p>해당 문의글을 찾을 수 없습니다.</p>
   </div>
+
+  <!-- ✅ 답변 표시 -->
+<div v-if="answer" class="answer-box">
+  <h3>💡 관리자 답변</h3>
+  <p><strong>작성일:</strong> {{ formatDate(answer.created_at) }}</p>
+  <div class="answer-content">
+    {{ answer.content }}
+  </div>
+</div>
+
+  <!-- 답글 입력 폼 -->
+  <div v-if="showReplyForm && userStore.userInfo?.is_admin" class="reply-form">
+    <textarea
+      v-model="replyContent"
+      placeholder="답글 내용을 입력하세요"
+      rows="4"
+    />
+    <button class="submit-reply" @click="submitReply">답글 등록</button>
+  </div>
 </template>
+
 
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
 import { onMounted, ref } from 'vue'
 import { useInquiryStore } from '../stores/inquiry'
 import { useUserStore } from '../stores/user'
+import axios from '../api/axios'
 
 const route = useRoute()
 const router = useRouter()
@@ -32,24 +83,109 @@ const inquiryStore = useInquiryStore()
 const userStore = useUserStore()
 
 const inquiry = ref(null)
+const isLoading = ref(true)
 
-onMounted(() => {
+const showReplyForm = ref(false)
+const replyContent = ref('')
+
+const answer = ref(null) // ✅ 답변 상태 변수
+
+onMounted(async () => {
   if (!userStore.isLoggedIn) {
     router.push('/login')
     return
   }
 
   const inquiryId = Number(route.params.id)
-  inquiry.value = inquiryStore.originalInquiries.find(i => i.id === inquiryId)
+  const result = await inquiryStore.fetchInquiryById(inquiryId)
+  isLoading.value = false
+
+  if (!result) return
+
+  const isOwner = userStore.userInfo.id === result.user_id
+  const isAdmin = userStore.userInfo.is_admin === true
+
+  if (result.is_secret === 1 && !(isOwner || isAdmin)) {
+    alert('비밀글입니다.')
+    router.push('/')
+    return
+  }
+
+  inquiry.value = result
+
+    // ✅ 답변도 함께 불러오기
+  try {
+    const res = await axios.get(`/answers?inquiry_id=${result.id}`)
+    if (res.data.success) {
+      answer.value = res.data.response
+    }
+  } catch (err) {
+    console.error('답변 불러오기 실패:', err)
+  }
 })
 
-const goBack = () => {
-  history.back()
+const goHome = () => {
+  router.push('/')
 }
 
-const formatDate = (iso) => {
-  const d = new Date(iso)
-  return `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`
+const goEdit = () => {
+  router.push(`/inquiries/${inquiry.value.id}/edit`)
+}
+
+const deleteInquiry = async () => {
+  if (!confirm('정말 삭제하시겠습니까?')) return
+  try {
+    await axios.delete(`/inquiries/${inquiry.value.id}`)
+    alert('문의글이 삭제되었습니다.')
+    router.push('/')
+  } catch (err) {
+    console.error('삭제 실패:', err)
+    alert('삭제에 실패했습니다.')
+  }
+}
+
+const formatDate = (raw) => {
+  const date = new Date(raw)
+  if (isNaN(date)) return '날짜 오류'
+
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+
+  return `${yyyy}.${mm}.${dd}`
+}
+
+
+const toggleReplyForm = () => {
+  showReplyForm.value = !showReplyForm.value
+}
+
+const submitReply = async () => {
+  if (!replyContent.value.trim()) {
+    alert('답글 내용을 입력해주세요.')
+    return
+  }
+
+  try {
+    const payload = {
+      inquiry_id: inquiry.value.id,
+      admin_id: userStore.userInfo.id,
+      content: replyContent.value
+    }
+
+    const res = await axios.post('/answers', payload)
+
+    if (res.data.success) {
+      alert('답변이 등록되었습니다.')
+      replyContent.value = ''
+      showReplyForm.value = false
+    } else {
+      alert('답변 등록 실패: ' + res.data.errorMessage)
+    }
+  } catch (err) {
+    console.error('❌ 답변 등록 실패:', err)
+    alert('답변 등록 중 오류가 발생했습니다.')
+  }
 }
 </script>
 
@@ -91,7 +227,86 @@ const formatDate = (iso) => {
       padding: 12px;
       border-radius: 6px;
     }
+
+    .actions {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+
+      button {
+        padding: 8px 12px;
+        border: none;
+        border-radius: 6px;
+        font-size: 14px;
+        cursor: pointer;
+      }
+
+      .edit-btn {
+        background-color: #0d6efd;
+        color: white;
+
+        &:hover {
+          background-color: #0b5ed7;
+        }
+      }
+
+      .delete-btn {
+        background-color: #dc3545;
+        color: white;
+
+        &:hover {
+          background-color: #bb2d3b;
+        }
+      }
+
+      .reply-btn {
+        background-color: #198754;
+        color: white;
+
+        &:hover {
+          background-color: #157347;
+        }
+      }
+    }
   }
+}
+
+.reply-form {
+  max-width: 700px;
+  margin: 0 auto 30px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+
+  textarea {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+  }
+
+  .submit-reply {
+    align-self: flex-end;
+    padding: 8px 14px;
+    background-color: #0d6efd;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+
+    &:hover {
+      background-color: #0b5ed7;
+    }
+  }
+}
+
+.loading {
+  max-width: 600px;
+  margin: 80px auto;
+  text-align: center;
+  font-size: 18px;
+  color: #555;
 }
 
 .not-found {
@@ -100,5 +315,27 @@ const formatDate = (iso) => {
   text-align: center;
   color: #888;
   font-size: 18px;
+}
+
+.answer-box {
+  margin-top: 30px;
+  padding: 16px;
+  background-color: #f1f3f5;
+  border-radius: 8px;
+  border-left: 4px solid #198754;
+
+  h3 {
+    margin-bottom: 8px;
+    color: #198754;
+  }
+
+  .answer-content {
+    margin-top: 8px;
+    padding: 12px;
+    background-color: #fff;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    white-space: pre-line;
+  }
 }
 </style>
