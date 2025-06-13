@@ -7,6 +7,7 @@ import RegisterPage from '../pages/RegisterPage.vue'
 import MyPage from '../pages/MyPage.vue'
 import InquiryDetailPage from '../pages/InquiryDetailPage.vue'
 import InquiryWritePage from '../pages/InquiryWritePage.vue'
+import EditProfilePage from '../pages/EditProfilePage.vue'
 
 const routes = [
   { path: '/', component: HomePage }, // QnA 목록
@@ -15,6 +16,7 @@ const routes = [
   { path: '/mypage', component: MyPage },
   { path: '/inquiries/write', component: InquiryWritePage },
   { path: '/inquiries/:id', component: InquiryDetailPage, props: true },
+  { path: '/edit-profile', component: EditProfilePage },
 ]
 
 const router = createRouter({

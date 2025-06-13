@@ -27,6 +27,7 @@
 <script setup>
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import axios from '../api/axios'
 
 const loginId = ref('')
 const password = ref('')
@@ -36,29 +37,36 @@ const message = ref('')
 const success = ref(false)
 const router = useRouter()
 
-const handleRegister = () => {
-  // 간단한 유효성 검사
+const handleRegister = async () => {
   if (!loginId.value || !password.value || !name.value || !email.value) {
     message.value = '❌ 모든 항목을 입력해주세요.'
     success.value = false
     return
   }
 
-  // 나중에 API 연동할 부분
-  console.log('회원가입 요청:', {
-    loginId: loginId.value,
-    password: password.value,
-    name: name.value,
-    email: email.value,
-  })
+  try {
+    const res = await axios.post('/users', {
+      login_id: loginId.value,
+      password: password.value,
+      name: name.value,
+      email: email.value
+    })
 
-  message.value = '✅ 회원가입이 완료되었습니다!'
-  success.value = true
+    if (res.data.success) {
+      message.value = '✅ 회원가입이 완료되었습니다!'
+      success.value = true
 
-  // 1초 후 로그인 페이지로 이동
-  setTimeout(() => {
-    router.push('/login')
-  }, 1000)
+      setTimeout(() => {
+        router.push('/login')
+      }, 1000)
+    } else {
+      message.value = '❌ 회원가입 실패: ' + res.data.errorMessage
+      success.value = false
+    }
+  } catch (err) {
+    message.value = '❌ 오류 발생: ' + (err.response?.data?.message || err.message)
+    success.value = false
+  }
 }
 </script>
 

@@ -1,25 +1,32 @@
-// stores/user.js
 import { defineStore } from 'pinia'
+import axios from '../api/axios' // axios 인스턴스
 
 export const useUserStore = defineStore('user', {
   state: () => ({
     isLoggedIn: false,
-    userInfo: null, // { id, loginId, name, email, isAdmin } 등 저장
+    userInfo: null,
   }),
 
   actions: {
-    login({ loginId, password }) {
-      if (loginId === 'sa' && password === 'sa') {
+    async login({ loginId, password }) {
+      try {
+        const res = await axios.post('/login', {
+          login_id: loginId,
+          password: password
+        })
+
+        const token = res.data.token
+        const user = res.data.user // ← 사용자 정보 함께 받음
+
+        localStorage.setItem('token', token)
         this.isLoggedIn = true
-        this.userInfo = {
-          id: 1,
-          loginId: 'sa',
-          name: '관리자',
-          email: 'admin@example.com',
-          isAdmin: true,
-        }
+
+        // 사용자 정보 요청
+        const userRes = await axios.get(`/users/${user.id}`)
+        this.userInfo = userRes.data.response
+
         return true
-      } else {
+      } catch (err) {
         return false
       }
     },
@@ -27,6 +34,7 @@ export const useUserStore = defineStore('user', {
     logout() {
       this.isLoggedIn = false
       this.userInfo = null
+      localStorage.removeItem('token')
     },
   },
 })
