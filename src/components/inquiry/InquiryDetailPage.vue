@@ -1,7 +1,5 @@
 <template>
-  <div v-if="isLoading" class="loading">
-    🔄 문의글을 불러오는 중입니다...
-  </div>
+  <div v-if="isLoading" class="loading">🔄 문의글을 불러오는 중입니다...</div>
 
   <div v-else-if="inquiry" class="inquiry-detail-page">
     <button class="back-btn" @click="goHome">← 목록으로</button>
@@ -18,64 +16,48 @@
         <p>{{ inquiry.content }}</p>
       </div>
 
-      <!-- 버튼 영역 -->
       <div class="actions" v-if="userStore.userInfo">
-        <button
-          v-if="userStore.userInfo.id === inquiry.user_id"
-          class="edit-btn"
-          @click="goEdit"
-        >
-          ✏️ 수정
-        </button>
-        <button
-          v-if="userStore.userInfo.id === inquiry.user_id"
-          class="delete-btn"
-          @click="deleteInquiry"
-        >
-          🗑️ 삭제
-        </button>
-        <button
-          v-if="userStore.userInfo.is_admin"
-          class="reply-btn"
-          @click="toggleReplyForm"
-        >
-          💬 답글달기
-        </button>
+        <button v-if="userStore.userInfo.id === inquiry.user_id" class="edit-btn" @click="goEdit">✏️ 수정</button>
+        <button v-if="userStore.userInfo.id === inquiry.user_id" class="delete-btn" @click="deleteInquiry">🗑️ 삭제</button>
+        <button v-if="userStore.userInfo.is_admin" class="reply-btn" @click="toggleReplyForm">💬 답글달기</button>
+      </div>
+
+      <!-- ✅ 답변 목록 -->
+      <div v-for="(answer, idx) in answers" :key="answer.id" class="answer-box">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <h3>💡 관리자 답변 {{ idx + 1 }}</h3>
+          <div v-if="userStore.userInfo?.is_admin" class="admin-controls">
+            <button class="admin-btn" @click="startEdit(answer.id, answer.content)">✏</button>
+            <button class="admin-btn" @click="deleteAnswer(answer.id)">🗑</button>
+          </div>
+        </div>
+        <p><strong>작성일:</strong> {{ formatDate(answer.created_at) }}</p>
+
+        <div v-if="isEditing[answer.id]">
+          <textarea v-model="editContent[answer.id]" rows="4" style="width: 100%"></textarea>
+          <button @click="saveEdit(answer.id)">저장</button>
+          <button @click="cancelEdit(answer.id)">취소</button>
+        </div>
+        <div v-else class="answer-content">{{ answer.content }}</div>
+      </div>
+
+      <!-- 답글 입력 폼 -->
+      <div v-if="showReplyForm && userStore.userInfo?.is_admin" class="reply-form">
+        <textarea v-model="replyContent" placeholder="답글 내용을 입력하세요" rows="4" />
+        <button class="submit-reply" @click="submitReply">답글 등록</button>
       </div>
     </div>
   </div>
 
-  <div v-else class="not-found">
-    <p>해당 문의글을 찾을 수 없습니다.</p>
-  </div>
-
-  <!-- ✅ 답변 표시 -->
-<div v-if="answer" class="answer-box">
-  <h3>💡 관리자 답변</h3>
-  <p><strong>작성일:</strong> {{ formatDate(answer.created_at) }}</p>
-  <div class="answer-content">
-    {{ answer.content }}
-  </div>
-</div>
-
-  <!-- 답글 입력 폼 -->
-  <div v-if="showReplyForm && userStore.userInfo?.is_admin" class="reply-form">
-    <textarea
-      v-model="replyContent"
-      placeholder="답글 내용을 입력하세요"
-      rows="4"
-    />
-    <button class="submit-reply" @click="submitReply">답글 등록</button>
-  </div>
+  <div v-else class="not-found"><p>해당 문의글을 찾을 수 없습니다.</p></div>
 </template>
-
 
 <script setup>
 import { useRoute, useRouter } from 'vue-router'
 import { onMounted, ref } from 'vue'
-import { useInquiryStore } from '../stores/inquiry'
-import { useUserStore } from '../stores/user'
-import axios from '../api/axios'
+import { useInquiryStore } from '../../stores/inquiry'
+import { useUserStore } from '../../stores/user'
+import axios from '../../api/axios'
 
 const route = useRoute()
 const router = useRouter()
@@ -87,8 +69,24 @@ const isLoading = ref(true)
 
 const showReplyForm = ref(false)
 const replyContent = ref('')
+const answers = ref([])
 
-const answer = ref(null) // ✅ 답변 상태 변수
+const isEditing = ref({})
+const editContent = ref({})
+
+const fetchAnswers = async (inquiryId) => {
+  try {
+    const res = await axios.get(`/answers?inquiry_id=${inquiryId}`)
+    if (res.data.success) {
+      answers.value = res.data.response
+
+      // ✅ 답변 상태 자동 업데이트
+      inquiry.value.answered = answers.value.length > 0
+    }
+  } catch (err) {
+    console.error('답변 불러오기 실패:', err)
+  }
+}
 
 onMounted(async () => {
   if (!userStore.isLoggedIn) {
@@ -112,25 +110,11 @@ onMounted(async () => {
   }
 
   inquiry.value = result
-
-    // ✅ 답변도 함께 불러오기
-  try {
-    const res = await axios.get(`/answers?inquiry_id=${result.id}`)
-    if (res.data.success) {
-      answer.value = res.data.response
-    }
-  } catch (err) {
-    console.error('답변 불러오기 실패:', err)
-  }
+  await fetchAnswers(result.id)
 })
 
-const goHome = () => {
-  router.push('/')
-}
-
-const goEdit = () => {
-  router.push(`/inquiries/${inquiry.value.id}/edit`)
-}
+const goHome = () => router.push('/')
+const goEdit = () => router.push(`/inquiries/${inquiry.value.id}/edit`)
 
 const deleteInquiry = async () => {
   if (!confirm('정말 삭제하시겠습니까?')) return
@@ -143,18 +127,6 @@ const deleteInquiry = async () => {
     alert('삭제에 실패했습니다.')
   }
 }
-
-const formatDate = (raw) => {
-  const date = new Date(raw)
-  if (isNaN(date)) return '날짜 오류'
-
-  const yyyy = date.getFullYear()
-  const mm = String(date.getMonth() + 1).padStart(2, '0')
-  const dd = String(date.getDate()).padStart(2, '0')
-
-  return `${yyyy}.${mm}.${dd}`
-}
-
 
 const toggleReplyForm = () => {
   showReplyForm.value = !showReplyForm.value
@@ -179,6 +151,7 @@ const submitReply = async () => {
       alert('답변이 등록되었습니다.')
       replyContent.value = ''
       showReplyForm.value = false
+      await fetchAnswers(inquiry.value.id)
     } else {
       alert('답변 등록 실패: ' + res.data.errorMessage)
     }
@@ -187,9 +160,82 @@ const submitReply = async () => {
     alert('답변 등록 중 오류가 발생했습니다.')
   }
 }
+
+const startEdit = (id, content) => {
+  isEditing.value[id] = true
+  editContent.value[id] = content
+}
+
+const cancelEdit = (id) => {
+  isEditing.value[id] = false
+  editContent.value[id] = ''
+}
+
+const saveEdit = async (id) => {
+  try {
+    const res = await axios.put(`/answers/${id}`, {
+      content: editContent.value[id],
+    })
+    if (res.data.success) {
+      alert('수정 완료')
+      isEditing.value[id] = false
+      await fetchAnswers(inquiry.value.id)
+    } else {
+      alert('수정 실패: ' + res.data.errorMessage)
+    }
+  } catch (err) {
+    console.error('수정 실패:', err)
+    alert('수정 중 오류 발생')
+  }
+}
+
+const deleteAnswer = async (id) => {
+  if (!confirm('정말 삭제하시겠습니까?')) return
+  try {
+    const res = await axios.delete(`/answers/${id}`)
+    if (res.data.success) {
+      alert('삭제 완료')
+      await fetchAnswers(inquiry.value.id)
+    } else {
+      alert('삭제 실패: ' + res.data.errorMessage)
+    }
+  } catch (err) {
+    console.error('삭제 실패:', err)
+    alert('삭제 중 오류 발생')
+  }
+}
+
+const formatDate = (raw) => {
+  const date = new Date(raw)
+  if (isNaN(date)) return '날짜 오류'
+
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  const hh = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+
+  return `${yyyy}.${mm}.${dd} ${hh}:${min}`
+}
 </script>
 
+
+
 <style scoped lang="scss">
+.admin-btn {
+  background: none;
+  border: none;
+  outline: none;
+  box-shadow: none;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 4px;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
 .inquiry-detail-page {
   max-width: 700px;
   margin: 40px auto;
@@ -318,7 +364,8 @@ const submitReply = async () => {
 }
 
 .answer-box {
-  margin-top: 30px;
+  max-width: 700px; // ✅ 문의 상세와 너비 통일
+  margin: 30px auto 0; // ✅ 중앙 정렬
   padding: 16px;
   background-color: #f1f3f5;
   border-radius: 8px;
@@ -327,6 +374,7 @@ const submitReply = async () => {
   h3 {
     margin-bottom: 8px;
     color: #198754;
+    font-size: 20px; // ✅ 제목 크기 줄이기
   }
 
   .answer-content {

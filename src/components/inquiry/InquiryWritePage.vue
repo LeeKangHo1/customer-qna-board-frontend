@@ -29,9 +29,9 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '../stores/user'
-import { useInquiryStore } from '../stores/inquiry'
-import axios from '../api/axios'
+import { useUserStore } from '../../stores/user'
+import { useInquiryStore } from '../../stores/inquiry'
+import axios from '../../api/axios'
 
 const router = useRouter()
 const userStore = useUserStore()

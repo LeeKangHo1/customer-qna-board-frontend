@@ -8,6 +8,7 @@
       <thead>
         <tr>
           <th>제목</th>
+          <th>비밀글</th> <!-- ✅ 위치 변경 -->
           <th>답변</th>
           <th>작성일</th>
         </tr>
@@ -19,18 +20,16 @@
               {{ inquiry.title }}
             </RouterLink>
           </td>
-          <td>{{ inquiry.answered ? '✅ 완료' : '⏳ 대기 중' }}</td>
-          <td>{{ formatDateToYYYYMMDD(inquiry.created_at) }}</td>
+          <td>{{ inquiry.is_secret === 1 ? '🔒' : '-' }}</td> <!-- ✅ 위치 변경 -->
+          <td>{{ inquiry.status === 'answered' ? '✅' : '⏳' }}</td>
+          <td>{{ formatDateToFull(inquiry.created_at) }}</td>
         </tr>
       </tbody>
+
     </table>
 
-    <Pagination
-      :total-items="store.filteredInquiries.length"
-      :items-per-page="perPage"
-      :current-page="store.currentPage"
-      @update:currentPage="store.currentPage = $event"
-    />
+    <Pagination :total-items="store.filteredInquiries.length" :items-per-page="perPage"
+      :current-page="store.currentPage" @update:currentPage="store.currentPage = $event" />
   </div>
 </template>
 
@@ -53,19 +52,19 @@ const pagedInquiries = computed(() => {
   return filteredInquiries.value.slice(start, end)
 })
 
-// 날짜 포맷팅 함수
-// "Fri, 13 Jun 2025 13:19:09 GMT" → "2025-06-13"으로 변환
-function formatDateToYYYYMMDD(dateStr) {
+// 날짜 포맷 (시분초 포함)
+function formatDateToFull(dateStr) {
   const date = new Date(dateStr)
-
-  const year = date.getFullYear()
-  const month = String(date.getMonth() + 1).padStart(2, '0') // 월은 0부터 시작
-  const day = String(date.getDate()).padStart(2, '0')
-
-  return `${year}-${month}-${day}`
+  const yyyy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  const hh = String(date.getHours()).padStart(2, '0')
+  const min = String(date.getMinutes()).padStart(2, '0')
+  const ss = String(date.getSeconds()).padStart(2, '0')
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`
 }
 
-// 초기 데이터 불러오기
+// 데이터 초기 불러오기
 onMounted(() => {
   store.fetchAllInquiries()
 })
@@ -73,7 +72,8 @@ onMounted(() => {
 
 <style scoped lang="scss">
 .inquiry-list {
-  margin-top: 24px;
+  margin: 24px auto;
+  max-width: 800px; // ✅ 전체 테이블 너비 축소
 
   .empty {
     text-align: center;
@@ -91,7 +91,8 @@ onMounted(() => {
     td {
       padding: 12px;
       border: 1px solid #ddd;
-      text-align: left;
+      text-align: center; // ✅ 전체 가운데 정렬
+      white-space: nowrap;
     }
 
     th {
@@ -105,17 +106,31 @@ onMounted(() => {
 
     th:nth-child(1),
     td:nth-child(1) {
-      width: 60%;
+      text-align: center; // 제목 헤더
+      min-width: 300px;
+      width: 50%;
+    }
+
+    td:nth-child(1) {
+      text-align: left; // 제목 내용
     }
 
     th:nth-child(2),
     td:nth-child(2) {
-      width: 20%;
+      width: 80px; // 🔒 비밀글
+      text-align: center;
     }
 
     th:nth-child(3),
     td:nth-child(3) {
-      width: 20%;
+      width: 80px; // ✅ 답변
+      text-align: center;
+    }
+
+    th:nth-child(4),
+    td:nth-child(4) {
+      width: 180px; // 🕒 작성일
+      text-align: center;
     }
   }
 }
