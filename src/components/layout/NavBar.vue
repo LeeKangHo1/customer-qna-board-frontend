@@ -3,9 +3,9 @@
     <RouterLink to="/" class="logo">QnA Board</RouterLink>
 
     <div class="nav-links">
-      <template v-if="userStore.isLoggedIn">
+      <!-- <template v-if="userStore.isLoggedIn">
         <RouterLink to="/inquiries/write">글쓰기</RouterLink>
-      </template>
+      </template> -->
 
       <RouterLink to="/">홈</RouterLink>
 
