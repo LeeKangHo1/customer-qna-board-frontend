@@ -1,5 +1,124 @@
 # Vue 3 + Vite
 
-This template should help get you started developing with Vue 3 in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+## 화면 페이지별 상세 설계
 
-Learn more about IDE Support for Vue in the [Vue Docs Scaling up Guide](https://vuejs.org/guide/scaling-up/tooling.html#ide-support).
+### 1)🧍 회원가입 페이지 (`/register`)
+
+**기능:** 로그인 ID, 비밀번호, 이름, 이메일 입력 → 가입
+
+**필수 UI 요소:**
+
+- `Input`: 로그인 ID
+- `Input`: 비밀번호 (조건 안내, 비밀번호 확인 입력 포함)
+- `Input`: 이름
+- `Input`: 이메일
+- `Button`: 회원가입
+- `Alert`: 중복 여부 및 유효성 메시지
+- ✅ 유효성 검사: 형식 체크 및 중복 체크 API 호출
+
+---
+
+### 2) 🔐 로그인 페이지 (`/login`)
+
+**기능:** 로그인 ID / 비밀번호 입력 → JWT 토큰 발급
+
+**필수 UI 요소:**
+
+- `Input`: 로그인 ID
+- `Input`: 비밀번호
+- `Button`: 로그인
+- `Link`: 회원가입 페이지 이동
+- `Alert`: 로그인 실패 메시지
+
+---
+
+### 3) 🏠 QnA 목록 페이지 (`/inquiries`)
+
+**기능:** 전체 문의글 조회 + 검색/정렬/페이징
+
+**권한:** 관리자 → 전체 / 일반 사용자 → 본인 문의글만
+
+**UI 요소:**
+
+- `SearchBar`: 키워드 검색 (제목/내용)
+- `Dropdown`: 정렬 옵션 (최신순, 답변여부)
+- `List`: 문의글 목록 (제목, 작성일, 상태, 비밀글 여부 아이콘)
+- `Pagination`: 페이지 이동
+- `Button`: 문의글 작성 (로그인 시만 노출)
+
+---
+
+### 4) 📝 문의글 작성 페이지 (`/inquiries/write`)
+
+**기능:** 제목 / 내용 / 비밀글 여부 작성
+
+**UI 요소:**
+
+- `Input`: 제목
+- `Textarea`: 내용
+- `Checkbox`: 비밀글 설정
+- `Button`: 등록 / 취소
+
+---
+
+### 5) 📄 문의글 상세 페이지 (`/inquiries/:id`)
+
+**기능:** 문의글 + 답변 조회, 수정/삭제 가능
+
+**UI 요소:**
+
+- `Card`: 문의글 정보 (작성자 이름 마스킹, 내용, 상태, 등록일)
+- `Card`: 답변 정보 (있을 경우만)
+- `Button`: 문의글 수정 / 삭제 (작성자 또는 관리자만)
+- `Button`: 답변 등록 / 수정 / 삭제 (관리자만)
+
+---
+
+### 6) 💬 답변 작성/수정 폼 (컴포넌트)
+
+**기능:** 텍스트 입력 후 등록/수정
+
+**UI 요소:**
+
+- `Textarea`: 답변 내용
+- `Button`: 등록 / 수정
+
+---
+
+### 7) 👤 마이페이지 (`/mypage`)
+
+**기능:** 로그인 사용자의 내 문의글 목록
+
+**UI 요소:**
+
+- `List`: 본인이 작성한 문의글 목록 (제목, 날짜, 상태)
+- `Pagination`: 페이지 이동
+- `Button`: 상세 보기 이동
+
+---
+
+## 🧱 공통 컴포넌트 설계
+
+| 컴포넌트명 | 설명 |
+| --- | --- |
+| `Navbar.vue` | 로그인/회원가입, 로그아웃, 마이페이지 링크 표시 |
+| `InquiryList.vue` | 문의글 목록 리스트 전용 컴포넌트 |
+| `AnswerBox.vue` | 답변 표시 컴포넌트 |
+| `AuthGuard.vue` | 인증된 사용자만 접근 가능한 라우팅 처리 |
+| `Alert.vue` | 에러/성공 메시지 표시용 컴포넌트 |
+| `Pagination.vue` | 페이징 컴포넌트 |
+| `SearchBar.vue` | 검색 키워드 입력 UI 컴포넌트 |
+| `SortDropdown.vue` | 정렬 드롭다운 UI 컴포넌트 |
+
+---
+
+## 🧭 화면 흐름 예시 (비밀글 포함)
+
+- 목록에서 `🔒 비밀글` 클릭
+    
+    → 작성자 또는 관리자면 상세 열람 가능
+    
+    → 아니라면 `권한 없음` 메시지 표시
+    
+
+---
