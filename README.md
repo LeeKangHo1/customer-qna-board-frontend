@@ -122,3 +122,87 @@
     
 
 ---
+
+## 피드백
+
+### 1. 출력될 화면 그려달라고 gpt에 요청할 때
+
+- html로 만들어 달라고 하고 그걸 vue로 전환해야 복잡한 화면도 정확하게 만들어 준다.
+
+### 2. 폴더 구조
+
+```bash
+frontend/
+├── public/
+│   └── index.html                    # 앱 진입 HTML
+│
+├── src/
+│   ├── api/
+│   │   └── axios.js                  # Axios 인스턴스 설정
+│
+│   ├── assets/                       # 정적 리소스 (이미지 등)
+│
+│   ├── components/
+│   │   ├── common/
+│   │   │   └── Pagination.vue        # 페이징 컴포넌트
+│   │   ├── inquiry/
+│   │   │   ├── InquiryDetailPage.vue # 문의 상세 페이지 (기존 DetailPage가 이 위치로 이동)
+│   │   │   ├── InquiryEditPage.vue   # 문의 수정 페이지
+│   │   │   ├── InquiryList.vue       # 목록 컴포넌트
+│   │   │   ├── InquiryWritePage.vue  # 작성 폼
+│   │   │   └── SearchBar.vue         # 검색 바
+│   │   └── layout/
+│   │       └── NavBar.vue            # 상단 네비게이션
+│
+│   ├── pages/
+│   │   ├── EditProfilePage.vue       # 회원정보 수정 페이지
+│   │   ├── HomePage.vue              # 홈(목록) 페이지
+│   │   ├── LoginPage.vue             # 로그인 페이지
+│   │   ├── MyPage.vue                # 마이페이지
+│   │   └── RegisterPage.vue          # 회원가입 페이지
+│
+│   ├── router/
+│   │   └── router.js                 # vue-router 설정
+│
+│   ├── services/
+│   │   └── inquiryService.js         # 문의 관련 API 호출 함수
+│
+│   ├── stores/
+│   │   ├── inquiry.js                # 문의 상태관리 (Pinia)
+│   │   ├── store.js                  # Pinia 등록용 루트 파일 (또는 메인 store)
+│   │   └── user.js                   # 사용자 상태관리 (Pinia)
+│
+│   ├── App.vue                       # 루트 컴포넌트
+│   └── main.js                       # 앱 진입점
+│
+├── .env                              # 환경 변수 설정
+├── .gitignore
+├── index.html                        # Vite 템플릿 HTML
+├── style.css                         # 전역 스타일
+```
+
+- pages 폴더에서 user, inquiry폴더 만들어서 관련된 페이지를 분류해서 넣어야 한다.
+    - 페이지는 page에 넣고 페이지에 쓰이는 컴포넌트를 컴포넌트에 넣어야 한다.
+    - 급한 개발로 컴포넌트 분리를 하지 않아서 난잡한 상태
+- 계속 돌려 쓰는 페이지는 컴포넌트→ common에 넣으면 된다.
+
+## 상태 관리 관련 피드백
+
+- stores 안에는 sate(상태, raw 데이터)만 넣어둔다. actions는 따로 → SRP 원칙
+- gpt 추천
+
+```bash
+src/
+├── stores/
+│   ├── user.js              # state, getters 등만 포함 (Pinia store 정의)
+│   └── inquiry.js
+│
+├── services/
+│   ├── user/
+│   │   └── userActions.js   # user 관련 action 함수들
+│   └── inquiry/
+│       └── inquiryActions.js # inquiry 관련 action 함수들
+```
+
+- 총 3단계 거쳐서 프론트에 데이터 전달
+    - pina store ↔ api 자료 받아오는 함수 모음 ↔ vue
